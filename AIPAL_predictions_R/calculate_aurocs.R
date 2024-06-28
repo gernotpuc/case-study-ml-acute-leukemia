@@ -33,12 +33,9 @@ input <- c(
 
 # Read the CSV file
 
-#data_all <- read.csv("/PATH_TO_CSV/R_aipal_ALL.csv")
-#data_aml <- read.csv("/PATH_TO_CSV/R_aipal_AML.csv")
-#data_apl <- read.csv("/PATH_TO_CSV/R_aipal_APL.csv")
-data_all <- read.csv("/Users/Gernot/Documents/aipal_evaluation/R_aipal_ALL.csv")
-data_aml <- read.csv("/Users/Gernot/Documents/aipal_evaluation/R_aipal_AML.csv")
-data_apl <- read.csv("/Users/Gernot/Documents/aipal_evaluation/R_aipal_APL.csv")
+data_all <- read.csv("/PATH_TO_CSV/R_aipal_ALL.csv")
+data_aml <- read.csv("/PATH_TO_CSV/R_aipal_AML.csv")
+data_apl <- read.csv("/PATH_TO_CSV/R_aipal_APL.csv")
 # Assign diagnosis classes if not inlcuded in the datasets already.
 # Replace with differential diagnosis eventually.
 data_all$diagnosis <- 'ALL'
