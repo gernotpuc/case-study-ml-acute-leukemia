@@ -106,13 +106,9 @@ for (encounter_id in data_filtered$encounter_reference) {
 }
 
 
-# Function to calculate AUROC with bootstrapping and return the AUROC and confidence intervals
-calculate_auroc_with_ci <- function(true_labels, probabilities, num_bootstrap_samples = 2000, ci_level = 0.95) {
+# Function to calculate AUROC with bootstrapping and return the median AUROC and confidence intervals
+calculate_median_auroc_with_ci <- function(true_labels, probabilities, num_bootstrap_samples = 2000, ci_level = 0.95) {
   options(warn = -1)
-
-  # Calculate AUROC on original data
-  suppressMessages(roc_obj <- roc(true_labels, probabilities))
-  auroc_original <- auc(roc_obj)
 
   # Perform bootstrapping
   auroc_bootstrapped <- numeric(num_bootstrap_samples)
@@ -126,24 +122,24 @@ calculate_auroc_with_ci <- function(true_labels, probabilities, num_bootstrap_sa
     auroc_bootstrapped[i] <- auc(bootstrapped_roc_obj)
   }
 
-  # Compute confidence intervals
+  # Compute the median and confidence intervals
+  median_auroc <- median(auroc_bootstrapped)
   ci_lower <- quantile(auroc_bootstrapped, (1 - ci_level) / 2)
   ci_upper <- quantile(auroc_bootstrapped, 1 - (1 - ci_level) / 2)
-  return(list(auroc_original = auroc_original, ci_lower = ci_lower, ci_upper = ci_upper))
+  return(list(median_auroc = median_auroc, ci_lower = ci_lower, ci_upper = ci_upper))
 }
 
-
-# Calculate AUROC for each class with confidence intervals
+# Calculate median AUROC for each class with confidence intervals
 for (class in c("ALL", "AML", "APL")) {
   # Extract probabilities for the current class
   probabilities <- predictions_list[[class]]
   true_labels <- true_labels_list[[class]]
 
-  # Calculate AUROC with confidence intervals
-  result <- calculate_auroc_with_ci(true_labels, probabilities)
+  # Calculate median AUROC with confidence intervals
+  result <- calculate_median_auroc_with_ci(true_labels, probabilities)
 
-  # Display the AUROC and confidence intervals for the current class
-  cat("AUROC for", class, "class:", result$auroc_original, "\n")
+  # Display the median AUROC and confidence intervals for the current class
+  cat("Median AUROC for", class, "class:", result$median_auroc, "\n")
   cat("95% Confidence Interval:", result$ci_lower, "-", result$ci_upper, "\n")
 }
 
