@@ -18,31 +18,34 @@ library(pROC)
 # The following inputs are expected by the model.
 # The labels in the column aipal_labels must correspond to these expected inputs.
 input <- c(
-  'MCV_fL',
-  'PT_percent',
-  'LDH_UI_L',
-  'MCHC_g_L',
-  'WBC_G_L',
-  'Fibrinogen_g_L',
-  'age',
-  'Monocytes_G_L',
-  'Platelets_G_L',
-  'Lymphocytes_G_L',
-  'Monocytes_percent'
+  "MCV_fL",
+  "PT_percent",
+  "LDH_UI_L",
+  "MCHC_g_L",
+  "WBC_G_L",
+  "Fibrinogen_g_L",
+  "age",
+  "Monocytes_G_L",
+  "Platelets_G_L",
+  "Lymphocytes_G_L",
+  "Monocytes_percent"
 )
 
-# Read the CSV file
+# Replace with the actual path to the data directory
+data_path <- "/DATA/PATH"
 
-data_all <- read.csv("/PATH_TO_CSV/R_aipal_ALL.csv")
-data_aml <- read.csv("/PATH_TO_CSV/R_aipal_AML.csv")
-data_apl <- read.csv("/PATH_TO_CSV/R_aipal_APL.csv")
-# Assign diagnosis classes if not inlcuded in the datasets already.
+# Read the CSV files
+data_all <- read.csv(file.path(data_path, "R_aipal_ALL_age.csv"))
+data_aml <- read.csv(file.path(data_path, "R_aipal_AML_age.csv"))
+data_apl <- read.csv(file.path(data_path, "R_aipal_APL.csv"))
+
+# Assign diagnosis classes if not included in the datasets already.
 # Replace with differential diagnosis eventually.
-data_all$diagnosis <- 'ALL'
-data_aml$diagnosis <- 'AML'
-data_apl$diagnosis <- 'APL'
+data_all$diagnosis <- "ALL"
+data_aml$diagnosis <- "AML"
+data_apl$diagnosis <- "APL"
 
-# Merge datasets and convert values of labortatory values to numeric
+# Merge datasets and convert values of laboratory values to numeric
 data <- bind_rows(data_all, data_aml, data_apl)
 data$value_quantity <- as.numeric(data$value_quantity)
 
@@ -55,13 +58,13 @@ data_wide <- data %>%
 data_filtered <- data_wide %>%
   select(encounter_reference, one_of(input), diagnosis) %>%
   group_by(encounter_reference) %>%
-  summarize_all(~first(na.omit(.)))
+  summarize_all(~ first(na.omit(.)))
 
 # Convert age to numeric
 data_filtered$age <- as.numeric(data_filtered$age)
 
 # Load the model
-res_list <- readRDS("data/221003_Final_model_res_list.rds")
+res_list <- readRDS(file.path(data_path, "221003_Final_model_res_list.rds"))
 model <- res_list$final_model
 
 # Initialize lists to store predictions and true labels for each class
@@ -142,8 +145,3 @@ for (class in c("ALL", "AML", "APL")) {
   cat("Median AUROC for", class, "class:", result$median_auroc, "\n")
   cat("95% Confidence Interval:", result$ci_lower, "-", result$ci_upper, "\n")
 }
-
-
-
-
-

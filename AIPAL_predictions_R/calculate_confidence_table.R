@@ -12,6 +12,8 @@
 
 
 # Load required libraries
+library(xgboost)
+library(caret)
 library(dplyr)
 library(tidyr)
 library(pROC)
@@ -19,32 +21,34 @@ library(pROC)
 # The following inputs are expected by the model.
 # The labels in the column aipal_labels must correspond to these expected inputs.
 input <- c(
-  'MCV_fL',
-  'PT_percent',
-  'LDH_UI_L',
-  'MCHC_g_L',
-  'WBC_G_L',
-  'Fibrinogen_g_L',
-  'age',
-  'Monocytes_G_L',
-  'Platelets_G_L',
-  'Lymphocytes_G_L',
-  'Monocytes_percent'
+  "MCV_fL",
+  "PT_percent",
+  "LDH_UI_L",
+  "MCHC_g_L",
+  "WBC_G_L",
+  "Fibrinogen_g_L",
+  "age",
+  "Monocytes_G_L",
+  "Platelets_G_L",
+  "Lymphocytes_G_L",
+  "Monocytes_percent"
 )
 
-# Read the CSV file
+# Replace with the actual path to the data directory
+data_path <- "/DATA/PATH"
 
-data_all <- read.csv("/PATH_TO_CSV/R_aipal_ALL.csv")
-data_aml <- read.csv("/PATH_TO_CSV/R_aipal_AML.csv")
-data_apl <- read.csv("/PATH_TO_CSV/R_aipal_APL.csv")
+# Read the CSV files
+data_all <- read.csv(file.path(data_path, "R_aipal_ALL_age.csv"))
+data_aml <- read.csv(file.path(data_path, "R_aipal_AML_age.csv"))
+data_apl <- read.csv(file.path(data_path, "R_aipal_APL.csv"))
 
 # Assign diagnosis classes if not inlcuded in the datasets already.
 # Replace with differential diagnosis eventually.
-data_all$diagnosis <- 'ALL'
-data_aml$diagnosis <- 'AML'
-data_apl$diagnosis <- 'APL'
+data_all$diagnosis <- "ALL"
+data_aml$diagnosis <- "AML"
+data_apl$diagnosis <- "APL"
 
-# Merge datasets and convert values of labortatory values to numeric
+# Merge datasets and convert values of laboratory values to numeric
 data <- bind_rows(data_all, data_aml, data_apl)
 data$value_quantity <- as.numeric(data$value_quantity)
 
@@ -57,13 +61,13 @@ data_wide <- data %>%
 data_filtered <- data_wide %>%
   select(encounter_reference, one_of(input), diagnosis) %>%
   group_by(encounter_reference) %>%
-  summarize_all(~first(na.omit(.)))
+  summarize_all(~ first(na.omit(.)))
 
 # Convert age to numeric
 data_filtered$age <- as.numeric(data_filtered$age)
 
-# Load the model
-res_list <- readRDS("data/221003_Final_model_res_list.rds")
+# Load the model, replace DATA_PATH with the actual path
+res_list <- readRDS(file.path(data_path, "221003_Final_model_res_list.rds"))
 model <- res_list$final_model
 
 # Initialize an empty list to store predictions and true labels
@@ -78,7 +82,7 @@ for (encounter_id in data_filtered$encounter_reference) {
     select(-encounter_reference)
 
   # Extract the true label
-  true_label <- ifelse(input_df$diagnosis == 'APL', 1, 0)
+  true_label <- ifelse(input_df$diagnosis == "APL", 1, 0)
   true_labels <- c(true_labels, true_label)
 
   # Remove the diagnosis from input data
@@ -102,8 +106,6 @@ for (encounter_id in data_filtered$encounter_reference) {
   predictions_list[[encounter_id]] <- prediction
 }
 
-library(dplyr)
-
 # Convert predictions_list into a dataframe
 predictions <- do.call(rbind, lapply(names(predictions_list), function(id) {
   pred <- predictions_list[[id]]
@@ -125,7 +127,6 @@ predictions_diagnosis <- merge(predictions, diagnosis, by = "encounter_reference
 # Add confidence columns for each AL type based on cutoff values
 predictions_confidence <- predictions_diagnosis %>%
   mutate(
-
     confident_APL = ifelse(APL >= cutoffs$PPV[cutoffs$category == "APL"], TRUE, FALSE),
     confident_not_APL = ifelse(APL <= cutoffs$NPV[cutoffs$category == "APL"], TRUE, FALSE),
     confident_AML = ifelse(AML >= cutoffs$PPV[cutoffs$category == "AML"], TRUE, FALSE),
@@ -160,4 +161,3 @@ result <- predictions_confidence %>%
   )
 
 print(result)
-

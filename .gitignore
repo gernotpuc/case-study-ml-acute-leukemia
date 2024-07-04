@@ -1,0 +1,10 @@
+# ENVIRONMENT
+.env
+
+# PYTHON ENVIRONMENT
+venv/
+.venv/
+
+# VS CODE
+.vscode/
+.DS_Store
